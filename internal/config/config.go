@@ -7,20 +7,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
-
-type Config struct{
-	BotToken string
+type Config struct {
+	BotToken    string
 	DatabaseURL string
-	ServerPort string
+	ServerPort  string
 }
 
 func Load() (*Config, error) {
 	godotenv.Load() // на проде файла нет - игнорируем ошибку намеренно
 
 	conf := &Config{
-		BotToken: os.Getenv("BOT_TOKEN"),
+		BotToken:    os.Getenv("BOT_TOKEN"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
-		ServerPort: os.Getenv("SERVER_PORT"),
+		ServerPort:  os.Getenv("SERVER_PORT"),
 	}
 
 	if conf.BotToken == "" {
