@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/lavralex/fairy_tale_bot/internal/bot"
 	"github.com/lavralex/fairy_tale_bot/internal/config"
 )
 
@@ -12,5 +13,5 @@ func main() {
 		log.Fatalln(err)
 	}
 	log.Println("Config loaded successfully")
-	_ = conf // временная заглушка
+	bot.Run(conf)
 }
