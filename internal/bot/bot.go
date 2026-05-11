@@ -23,12 +23,23 @@ func Run(conf *config.Config) error {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message != nil {
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-			msg.ReplyToMessageID = update.Message.MessageID
-
+		message := update.Message
+		if message != nil {
+			log.Printf("[%s] %s", message.From.UserName, message.Text)
+			msg := tgbotapi.NewMessage(message.Chat.ID, "")
+			if message.IsCommand() {
+				switch message.Command() {
+				case "start":
+					msg.Text = "Приветствуем вас!"
+					webApp := tgbotapi.WebAppInfo{URL: "https://example.com"}
+					msg.ReplyMarkup = getStartKeyboard("Вход в магазин", webApp)
+				default:
+					msg.Text = "Команда не найдена"
+				}
+			} else {
+				msg.Text = message.Text
+				msg.ReplyToMessageID = message.MessageID
+			}
 			bot.Send(msg)
 		}
 	}
