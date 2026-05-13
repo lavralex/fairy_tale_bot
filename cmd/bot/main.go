@@ -10,18 +10,18 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	conf, err := config.Load()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	log.Println("Config loaded successfully")
-	store, err := storage.New(context.Background(), conf.DatabaseURL)
+	store, err := storage.New(ctx, conf.DatabaseURL)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_ = store // заглушка
 	log.Println("DB connected successfully")
-	err = bot.Run(conf)
+	err = bot.Run(ctx, conf, store)
 	if err != nil {
 		log.Fatalln(err)
 	}

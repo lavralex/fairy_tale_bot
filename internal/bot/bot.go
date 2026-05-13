@@ -1,13 +1,18 @@
 package bot
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/lavralex/fairy_tale_bot/internal/config"
+	"github.com/lavralex/fairy_tale_bot/internal/models"
+	"github.com/lavralex/fairy_tale_bot/internal/storage"
 )
 
-func Run(conf *config.Config) error {
+func Run(ctx context.Context, conf *config.Config, store *storage.Storage) error {
 	bot, err := tgbotapi.NewBotAPI(conf.BotToken)
 	if err != nil {
 		return err
@@ -30,7 +35,34 @@ func Run(conf *config.Config) error {
 			if message.IsCommand() {
 				switch message.Command() {
 				case "start":
-					msg.Text = "Приветствуем вас!"
+					telegramUser := message.From
+					err = store.CreateUser(
+						ctx,
+						models.User{
+							TelegramID: telegramUser.ID,
+							Username:   &telegramUser.UserName,
+						},
+					)
+					if err != nil {
+						msg.Text = "Произошла ошибка регистрации"
+						bot.Send(msg)
+						log.Printf("CreateUser error: %v", err)
+						continue
+					}
+					dbUser, err := store.GetUserByTelegramID(ctx, telegramUser.ID)
+					if errors.Is(err, storage.ErrUserNotFound) {
+						msg.Text = "Пользователь не найден"
+						bot.Send(msg)
+						log.Printf("GetUserByTelegramID error: %v", err)
+						continue
+					}
+					if err != nil {
+						msg.Text = "Произошла ошибка поиска пользователя"
+						bot.Send(msg)
+						log.Printf("GetUserByTelegramID error: %v", err)
+						continue
+					}
+					msg.Text = fmt.Sprintf("Здравствуйте, %s", *dbUser.Username)
 					webApp := tgbotapi.WebAppInfo{URL: "https://example.com"}
 					msg.ReplyMarkup = getStartKeyboard("Вход в магазин", webApp)
 				default:
