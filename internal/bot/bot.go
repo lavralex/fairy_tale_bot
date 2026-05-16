@@ -29,7 +29,7 @@ func Run(ctx context.Context, conf *config.Config, store *storage.Storage) error
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		case update := <-updates:
 			message := update.Message
 			if message != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os/signal"
 	"syscall"
@@ -9,6 +10,7 @@ import (
 	"github.com/lavralex/fairy_tale_bot/internal/bot"
 	"github.com/lavralex/fairy_tale_bot/internal/config"
 	"github.com/lavralex/fairy_tale_bot/internal/storage"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -28,9 +30,13 @@ func main() {
 		log.Fatalln(err)
 	}
 	log.Println("DB connected successfully")
-	err = bot.Run(ctx, conf, store)
-	if err != nil {
-		log.Fatalln(err)
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error { return bot.Run(ctx, conf, store) })
+	if err := g.Wait(); err != nil {
+		if errors.Is(err, context.Canceled) {
+			log.Println("Bot stopped")
+		} else {
+			log.Fatalln(err)
+		}
 	}
-	log.Println("Bot stopped")
 }
