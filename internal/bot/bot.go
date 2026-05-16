@@ -26,21 +26,25 @@ func Run(ctx context.Context, conf *config.Config, store *storage.Storage) error
 
 	hs := newHandler(bot, store, conf)
 
-	for update := range updates {
-		message := update.Message
-		if message != nil {
-			log.Printf("[%s] %s", message.From.UserName, message.Text)
-			msg := tgbotapi.NewMessage(message.Chat.ID, "")
-			if message.IsCommand() {
-				switch message.Command() {
-				case "start":
-					hs.handleStart(ctx, message)
-				default:
-					msg.Text = "Команда не найдена"
-					bot.Send(msg)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case update := <-updates:
+			message := update.Message
+			if message != nil {
+				log.Printf("[%s] %s", message.From.UserName, message.Text)
+				msg := tgbotapi.NewMessage(message.Chat.ID, "")
+				if message.IsCommand() {
+					switch message.Command() {
+					case "start":
+						hs.handleStart(ctx, message)
+					default:
+						msg.Text = "Команда не найдена"
+						bot.Send(msg)
+					}
 				}
 			}
 		}
 	}
-	return nil
 }

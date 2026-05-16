@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"os/signal"
+	"syscall"
 
 	"github.com/lavralex/fairy_tale_bot/internal/bot"
 	"github.com/lavralex/fairy_tale_bot/internal/config"
@@ -10,7 +12,12 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	defer stop()
 	conf, err := config.Load()
 	if err != nil {
 		log.Fatalln(err)
@@ -25,4 +32,5 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	log.Println("Bot stopped")
 }
