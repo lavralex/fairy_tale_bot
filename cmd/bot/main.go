@@ -31,13 +31,17 @@ func main() {
 		log.Fatalln(err)
 	}
 	log.Println("DB connected successfully")
-	api := api.New(conf)
+	srv := api.New(conf)
+	b, err := bot.New(conf, store)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error { return bot.Run(ctx, conf, store) })
-	g.Go(func() error {return api.Run(ctx)})
+	g.Go(func() error { return b.Run(ctx) })
+	g.Go(func() error { return srv.Run(ctx) })
 	if err := g.Wait(); err != nil {
 		if errors.Is(err, context.Canceled) {
-			log.Println("Bot stopped")
+			log.Println("Shutting down")
 		} else {
 			log.Fatalln(err)
 		}

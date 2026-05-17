@@ -9,22 +9,33 @@ import (
 	"github.com/lavralex/fairy_tale_bot/internal/storage"
 )
 
-func Run(ctx context.Context, conf *config.Config, store *storage.Storage) error {
-	bot, err := tgbotapi.NewBotAPI(conf.BotToken)
+type Bot struct {
+	conf  *config.Config
+	store *storage.Storage
+	api   *tgbotapi.BotAPI
+}
+
+func New(conf *config.Config, store *storage.Storage) (*Bot, error) {
+	api, err := tgbotapi.NewBotAPI(conf.BotToken)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return &Bot{
+		conf:  conf,
+		store: store,
+		api:   api,
+	}, nil
+}
 
-	bot.Debug = conf.Debug
+func (b *Bot) Run(ctx context.Context) error {
+	b.api.Debug = b.conf.Debug
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	log.Printf("Authorized on account %s", b.api.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates := bot.GetUpdatesChan(u)
-
-	hs := newHandler(bot, store, conf)
+	updates := b.api.GetUpdatesChan(u)
 
 	for {
 		select {
@@ -38,10 +49,10 @@ func Run(ctx context.Context, conf *config.Config, store *storage.Storage) error
 				if message.IsCommand() {
 					switch message.Command() {
 					case "start":
-						hs.handleStart(ctx, message)
+						b.handleStart(ctx, message)
 					default:
 						msg.Text = "Команда не найдена"
-						bot.Send(msg)
+						b.api.Send(msg)
 					}
 				}
 			}
