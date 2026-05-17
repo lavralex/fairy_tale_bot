@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/lavralex/fairy_tale_bot/internal/api"
 	"github.com/lavralex/fairy_tale_bot/internal/bot"
 	"github.com/lavralex/fairy_tale_bot/internal/config"
 	"github.com/lavralex/fairy_tale_bot/internal/storage"
@@ -30,8 +31,10 @@ func main() {
 		log.Fatalln(err)
 	}
 	log.Println("DB connected successfully")
+	api := api.New(conf)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return bot.Run(ctx, conf, store) })
+	g.Go(func() error {return api.Run(ctx)})
 	if err := g.Wait(); err != nil {
 		if errors.Is(err, context.Canceled) {
 			log.Println("Bot stopped")
