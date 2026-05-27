@@ -21,7 +21,7 @@ func (s *Storage) CreateUser(ctx context.Context, user models.User) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" {
+			if pgErr.Code == "23505" { // 23505 - unique violation
 				return nil
 			}
 			return fmt.Errorf("CreateUser DB: %w", err)
