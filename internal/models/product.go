@@ -10,11 +10,12 @@ type Product struct {
 	Description     string
 	Price           string
 	TemplateID      *int64
-	Tags            *[]string
+	Tags            []string
 	CreatedAt       time.Time
 	IsAvailable     bool
 	CommentEnabled  bool
 	TemplateEnabled bool
+	Images          []ProductImage
 }
 
 type ProductImage struct {
