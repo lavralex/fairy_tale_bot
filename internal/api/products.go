@@ -1,0 +1,174 @@
+package api
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/lavralex/fairy_tale_bot/internal/models"
+	"github.com/lavralex/fairy_tale_bot/internal/storage"
+)
+
+type createProductAdminRequest struct {
+	Name            string                    `json:"name"`
+	Description     string                    `json:"description"`
+	Price           string                    `json:"price"`
+	Tags            []string                  `json:"tags,omitempty"`
+	IsAvailable     bool                      `json:"is_available"`
+	CommentEnabled  bool                      `json:"comment_enabled"`
+	TemplateEnabled bool                      `json:"template_enabled"`
+	Images          []createImageAdminRequest `json:"images"`
+}
+
+type createImageAdminRequest struct {
+	Src       string `json:"src"`
+	Alt       string `json:"alt"`
+	SortOrder int8   `json:"sort_order"`
+}
+
+type productAdminResponse struct {
+	ID              int64                `json:"id"`
+	Name            string               `json:"name"`
+	Description     string               `json:"description"`
+	Price           string               `json:"price"`
+	Tags            []string             `json:"tags,omitempty"`
+	TemplateID      *int64               `json:"template_id,omitempty"`
+	IsAvailable     bool                 `json:"is_available"`
+	CommentEnabled  bool                 `json:"comment_enabled"`
+	TemplateEnabled bool                 `json:"template_enabled"`
+	CreatedAt       time.Time            `json:"created_at"`
+	Images          []imageAdminResponse `json:"images"`
+}
+
+type imageAdminResponse struct {
+	ID        int64     `json:"id"`
+	Src       string    `json:"src"`
+	Alt       string    `json:"alt"`
+	SortOrder int8      `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (s *Server) createProductAdmin(c echo.Context) error {
+	var req createProductAdminRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid body"})
+	}
+	product := models.Product{
+		Name:            req.Name,
+		Description:     req.Description,
+		Price:           req.Price,
+		Tags:            req.Tags,
+		IsAvailable:     req.IsAvailable,
+		CommentEnabled:  req.CommentEnabled,
+		TemplateEnabled: req.TemplateEnabled,
+	}
+	images := make([]models.ProductImage, 0, len(req.Images))
+	for _, image := range req.Images {
+		images = append(
+			images,
+			models.ProductImage{
+				Src:       image.Src,
+				Alt:       image.Alt,
+				SortOrder: image.SortOrder,
+			},
+		)
+	}
+	product.Images = images
+	item, err := s.store.CreateProduct(c.Request().Context(), product)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "create product error"})
+	}
+	createdImages := make([]imageAdminResponse, 0, len(item.Images))
+	for _, image := range item.Images {
+		createdImages = append(
+			createdImages,
+			imageAdminResponse{
+				ID:        image.ID,
+				Src:       image.Src,
+				Alt:       image.Alt,
+				SortOrder: image.SortOrder,
+				CreatedAt: image.CreatedAt,
+			},
+		)
+	}
+	createdProduct := productAdminResponse{
+		ID:              item.ID,
+		Name:            item.Name,
+		Description:     item.Description,
+		Price:           item.Price,
+		Tags:            item.Tags,
+		IsAvailable:     item.IsAvailable,
+		CommentEnabled:  item.CommentEnabled,
+		TemplateEnabled: item.TemplateEnabled,
+		CreatedAt:       item.CreatedAt,
+		Images:          createdImages,
+	}
+	return c.JSON(http.StatusCreated, createdProduct)
+}
+
+func (s *Server) getProductAdmin(c echo.Context) error {
+	productID, err := strconv.ParseInt(
+		c.Param("id"),
+		10,
+		64,
+	)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id parameter can't parse to number error"})
+	}
+	item, err := s.store.GetProduct(c.Request().Context(), productID)
+	if errors.Is(err, storage.ErrProductNotFound) {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "product not found"})
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "get product error"})
+	}
+	images := make([]imageAdminResponse, 0, len(item.Images))
+	for _, image := range item.Images {
+		images = append(
+			images,
+			imageAdminResponse{
+				ID:        image.ID,
+				Src:       image.Src,
+				Alt:       image.Alt,
+				SortOrder: image.SortOrder,
+				CreatedAt: image.CreatedAt,
+			},
+		)
+	}
+	product := productAdminResponse{
+		ID:              item.ID,
+		Name:            item.Name,
+		Description:     item.Description,
+		Price:           item.Price,
+		TemplateID:      item.TemplateID,
+		Tags:            item.Tags,
+		CreatedAt:       item.CreatedAt,
+		IsAvailable:     item.IsAvailable,
+		CommentEnabled:  item.CommentEnabled,
+		TemplateEnabled: item.TemplateEnabled,
+		Images:          images,
+	}
+	return c.JSON(http.StatusOK, product)
+}
+
+type listProductsResponse struct {
+	ID          int64                      `json:"id"`
+	Name        string                     `json:"name"`
+	Description string                     `json:"description"`
+	Price       string                     `json:"price"`
+	Tags        []string                   `json:"tags,omitempty"`
+	Images      []listProductImageResponse `json:"images"`
+}
+
+type listProductImageResponse struct {
+	ID        int64  `json:"id"`
+	Src       string `json:"src"`
+	Alt       string `json:"alt"`
+	SortOrder int8   `json:"sort_order"`
+}
+
+func (s *Server) listProducts(c echo.Context) error {
+	return c.String(http.StatusOK, "listProducts: ok")
+}

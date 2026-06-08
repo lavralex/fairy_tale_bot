@@ -31,7 +31,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	log.Println("DB connected successfully")
-	srv := api.New(conf)
+	srv := api.New(conf, store)
 	b, err := bot.New(conf, store)
 	if err != nil {
 		log.Fatalln(err)
