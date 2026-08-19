@@ -169,6 +169,62 @@ type listProductImageResponse struct {
 	SortOrder int8   `json:"sort_order"`
 }
 
+const defaultLimit = 10
+const maxLimit = 50
+
+func parseLimit(c echo.Context) int {
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil || limit <= 0 {
+		return defaultLimit
+	}
+	if limit > maxLimit {
+		return maxLimit
+	}
+	return limit
+}
+
+const defaultOffset = 0
+
+func parseOffset(c echo.Context, limit int) int {
+	page, err := strconv.Atoi(c.QueryParam("page"))
+	if err != nil || page <= 0 {
+		return defaultOffset
+	}
+	return (page - 1) * limit
+}
+
 func (s *Server) listProducts(c echo.Context) error {
-	return c.String(http.StatusOK, "listProducts: ok")
+	limit := parseLimit(c)
+	offset := parseOffset(c, limit)
+	items, err := s.store.GetProducts(c.Request().Context(), limit, offset)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "get products error"})
+	}
+	products := make([]listProductsResponse, 0, limit)
+	for _, item := range items {
+		respImages := make([]listProductImageResponse, 0, len(item.Images))
+		for _, image := range item.Images {
+			respImages = append(
+				respImages,
+				listProductImageResponse{
+					ID:        image.ID,
+					Src:       image.Src,
+					Alt:       image.Alt,
+					SortOrder: image.SortOrder,
+				},
+			)
+		}
+		products = append(
+			products,
+			listProductsResponse{
+				ID:          item.ID,
+				Name:        item.Name,
+				Description: item.Description,
+				Price:       item.Price,
+				Tags:        item.Tags,
+				Images:      respImages,
+			},
+		)
+	}
+	return c.JSON(http.StatusOK, products)
 }

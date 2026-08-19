@@ -133,3 +133,73 @@ func (s *Storage) GetProduct(ctx context.Context, id int64) (*models.Product, er
 	}
 	return &product, nil
 }
+
+func (s* Storage) GetProducts(ctx context.Context, limit int, offset int) ([]models.Product, error) {
+	rows, err := s.db.Query(
+		ctx,
+		"SELECT id, name, description, price, template_id, tags, created_at, is_available, comment_enabled, template_enabled FROM products "+
+			"LIMIT $1 OFFSET $2", limit, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetProducts query: %w", err)
+	}
+	defer rows.Close()
+	var products = make([]models.Product, 0, limit)
+	var productsIDs = make([]int64, 0, limit)
+	var productsMap = make(map[int64]*models.Product)
+	for rows.Next() {
+		var product models.Product
+		err := rows.Scan(
+			&product.ID,
+			&product.Name,
+			&product.Description,
+			&product.Price,
+			&product.TemplateID,
+			&product.Tags,
+			&product.CreatedAt,
+			&product.IsAvailable,
+			&product.CommentEnabled,
+			&product.TemplateEnabled,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("GetProducts product Scan: %w", err)
+		}
+		products = append(products, product)
+		productsIDs = append(productsIDs, product.ID)
+		productsMap[product.ID] = &products[len(products)-1]
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("GetProducts products rows: %w", err)
+	}
+
+	rows, err = s.db.Query(
+		ctx,
+		"SELECT id, product_id, src, alt, sort_order, created_at FROM product_images "+
+			"WHERE product_id = ANY($1);",
+		productsIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetProducts image query: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var image models.ProductImage
+		err := rows.Scan(
+			&image.ID,
+			&image.ProductID,
+			&image.Src,
+			&image.Alt,
+			&image.SortOrder,
+			&image.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("GetProducts image Scan: %w", err)
+		}
+		productsMap[image.ProductID].Images = append(productsMap[image.ProductID].Images, image)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("GetProducts image rows: %w", err)
+	}
+	return products, nil
+}
+
