@@ -228,3 +228,90 @@ func (s *Server) listProducts(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, products)
 }
+
+func (s *Server) deleteProductAdmin(c echo.Context) error {
+	productID, err := strconv.ParseInt(
+		c.Param("id"),
+		10,
+		64,
+	)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id parameter can't parse to number error"})
+	}
+	err = s.store.DeleteProduct(c.Request().Context(), productID)
+	if errors.Is(err, storage.ErrProductNotFound) {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "product not found"})
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "delete product error"})
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) updateProductAdmin(c echo.Context) error {
+	productID, err := strconv.ParseInt(
+		c.Param("id"),
+		10,
+		64,
+	)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id parameter can't parse to number error"})
+	}
+	var req createProductAdminRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid body"})
+	}
+	product := models.Product{
+		ID:              productID,
+		Name:            req.Name,
+		Description:     req.Description,
+		Price:           req.Price,
+		Tags:            req.Tags,
+		IsAvailable:     req.IsAvailable,
+		CommentEnabled:  req.CommentEnabled,
+		TemplateEnabled: req.TemplateEnabled,
+	}
+	for _, image := range req.Images {
+		product.Images = append(
+			product.Images,
+			models.ProductImage{
+				Src:       image.Src,
+				Alt:       image.Alt,
+				SortOrder: image.SortOrder,
+			},
+		)
+	}
+	item, err := s.store.UpdateProduct(c.Request().Context(), product)
+	if errors.Is(err, storage.ErrProductNotFound) {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "product not found"})
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update product error"})
+	}
+	updatedImages := make([]imageAdminResponse, 0, len(item.Images))
+	for _, image := range item.Images {
+		updatedImages = append(
+			updatedImages,
+			imageAdminResponse{
+				ID:        image.ID,
+				Src:       image.Src,
+				Alt:       image.Alt,
+				SortOrder: image.SortOrder,
+				CreatedAt: image.CreatedAt,
+			},
+		)
+	}
+	updatedProduct := productAdminResponse{
+		ID:              item.ID,
+		Name:            item.Name,
+		Description:     item.Description,
+		Price:           item.Price,
+		Tags:            item.Tags,
+		IsAvailable:     item.IsAvailable,
+		CommentEnabled:  item.CommentEnabled,
+		TemplateEnabled: item.TemplateEnabled,
+		CreatedAt:       item.CreatedAt,
+		Images:          updatedImages,
+	}
+	return c.JSON(http.StatusOK, updatedProduct)
+}
