@@ -19,6 +19,7 @@ type createProductAdminRequest struct {
 	Tags            []string                  `json:"tags,omitempty"`
 	IsAvailable     bool                      `json:"is_available"`
 	CommentEnabled  bool                      `json:"comment_enabled"`
+	TemplateID      *int64                    `json:"template_id,omitempty"`
 	TemplateEnabled bool                      `json:"template_enabled"`
 	Images          []createImageAdminRequest `json:"images"`
 }
@@ -63,6 +64,7 @@ func (s *Server) createProductAdmin(c echo.Context) error {
 		Tags:            req.Tags,
 		IsAvailable:     req.IsAvailable,
 		CommentEnabled:  req.CommentEnabled,
+		TemplateID:      req.TemplateID,
 		TemplateEnabled: req.TemplateEnabled,
 	}
 	for _, image := range req.Images {
@@ -104,6 +106,7 @@ func (s *Server) createProductAdmin(c echo.Context) error {
 		Tags:            item.Tags,
 		IsAvailable:     item.IsAvailable,
 		CommentEnabled:  item.CommentEnabled,
+		TemplateID:      item.TemplateID,
 		TemplateEnabled: item.TemplateEnabled,
 		CreatedAt:       item.CreatedAt,
 		Images:          createdImages,
@@ -272,6 +275,7 @@ func (s *Server) updateProductAdmin(c echo.Context) error {
 		Tags:            req.Tags,
 		IsAvailable:     req.IsAvailable,
 		CommentEnabled:  req.CommentEnabled,
+		TemplateID:      req.TemplateID,
 		TemplateEnabled: req.TemplateEnabled,
 	}
 	for _, image := range req.Images {
@@ -316,6 +320,7 @@ func (s *Server) updateProductAdmin(c echo.Context) error {
 		Tags:            item.Tags,
 		IsAvailable:     item.IsAvailable,
 		CommentEnabled:  item.CommentEnabled,
+		TemplateID:      item.TemplateID,
 		TemplateEnabled: item.TemplateEnabled,
 		CreatedAt:       item.CreatedAt,
 		Images:          updatedImages,
