@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -64,10 +65,9 @@ func (s *Server) createProductAdmin(c echo.Context) error {
 		CommentEnabled:  req.CommentEnabled,
 		TemplateEnabled: req.TemplateEnabled,
 	}
-	images := make([]models.ProductImage, 0, len(req.Images))
 	for _, image := range req.Images {
-		images = append(
-			images,
+		product.Images = append(
+			product.Images,
 			models.ProductImage{
 				Src:       image.Src,
 				Alt:       image.Alt,
@@ -75,8 +75,11 @@ func (s *Server) createProductAdmin(c echo.Context) error {
 			},
 		)
 	}
-	product.Images = images
 	item, err := s.store.CreateProduct(c.Request().Context(), product)
+	if errors.Is(err, storage.ErrIncorrectNumberOfImages) {
+		errTxt := fmt.Sprintf("the incorrect number of images: %d required is between 1 and 5", len(product.Images))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": errTxt})
+	}
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "create product error"})
 	}
@@ -284,6 +287,10 @@ func (s *Server) updateProductAdmin(c echo.Context) error {
 	item, err := s.store.UpdateProduct(c.Request().Context(), product)
 	if errors.Is(err, storage.ErrProductNotFound) {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "product not found"})
+	}
+	if errors.Is(err, storage.ErrIncorrectNumberOfImages) {
+		errTxt := fmt.Sprintf("the incorrect number of images: %d required is between 1 and 5", len(product.Images))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": errTxt})
 	}
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update product error"})

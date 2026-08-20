@@ -10,14 +10,15 @@ import (
 )
 
 var ErrProductNotFound = errors.New("product not found")
+var ErrIncorrectNumberOfImages = errors.New("the incorrect number of images required is between 1 and 5")
 
 func (s *Storage) CreateProduct(
 	ctx context.Context,
 	product models.Product,
 ) (models.Product, error) {
 	images := product.Images
-	if imagesCount := len(images); imagesCount < 1 || imagesCount > 5 {
-		return models.Product{}, fmt.Errorf("the incorrect number of images %d required is between 1 and 5", imagesCount)
+	if len(images) < 1 || len(images) > 5 {
+		return models.Product{}, ErrIncorrectNumberOfImages
 	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -216,8 +217,8 @@ func (s *Storage) DeleteProduct(ctx context.Context, id int64) error {
 
 func (s *Storage) UpdateProduct(ctx context.Context, product models.Product) (models.Product, error) {
 	images := product.Images
-	if imagesCount := len(images); imagesCount < 1 || imagesCount > 5 {
-		return models.Product{}, fmt.Errorf("the incorrect number of images %d required is between 1 and 5", imagesCount)
+	if len(images) < 1 || len(images) > 5 {
+		return models.Product{}, ErrIncorrectNumberOfImages
 	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
