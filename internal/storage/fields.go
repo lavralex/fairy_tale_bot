@@ -198,22 +198,14 @@ func (s *Storage) DeleteField(ctx context.Context, id int64) error {
 }
 
 func (s *Storage) UpdateField(ctx context.Context, field models.Field) (models.Field, error) {
-	if len(field.Options) < 1 {
-		return models.Field{}, ErrIncorrectNumberOfOptions
-	}
-	tx, err := s.db.Begin(ctx)
-	if err != nil {
-		return models.Field{}, fmt.Errorf("UpdateField: %w", err)
-	}
-	defer tx.Rollback(ctx)
-	row := tx.QueryRow(
+	row := s.db.QueryRow(
 		ctx,
 		"UPDATE fields SET name = $1, is_active = $2 WHERE id = $3 "+
 			"RETURNING id, name, is_active, created_at",
 		field.Name, field.IsActive, field.ID,
 	)
 	var returnedField models.Field
-	err = row.Scan(
+	err := row.Scan(
 		&returnedField.ID,
 		&returnedField.Name,
 		&returnedField.IsActive,
@@ -225,39 +217,33 @@ func (s *Storage) UpdateField(ctx context.Context, field models.Field) (models.F
 	if err != nil {
 		return models.Field{}, fmt.Errorf("UpdateField field QueryRow: %w", err)
 	}
-	_, err = tx.Exec(
+	rows, err := s.db.Query(
 		ctx,
-		"DELETE FROM field_options WHERE field_id = $1",
+		"SELECT id, field_id, name, is_active, sort_order, created_at FROM field_options "+
+			"WHERE field_id = $1",
 		field.ID,
 	)
 	if err != nil {
-		return models.Field{}, fmt.Errorf("UpdateField options delete: %w", err)
+		return models.Field{}, fmt.Errorf("UpdateField option query: %w", err)
 	}
-	for _, option := range field.Options {
-		row := tx.QueryRow(
-			ctx,
-			"INSERT INTO field_options (field_id, name, sort_order, is_active) "+
-				"VALUES ($1, $2, $3, $4) RETURNING id, field_id, name, sort_order, is_active, created_at;",
-			field.ID, option.Name, option.SortOrder, option.IsActive,
-		)
-		var returnedOption models.FieldOption
-		err = row.Scan(
-			&returnedOption.ID,
-			&returnedOption.FieldID,
-			&returnedOption.Name,
-			&returnedOption.SortOrder,
-			&returnedOption.IsActive,
-			&returnedOption.CreatedAt,
+	defer rows.Close()
+	for rows.Next() {
+		var option models.FieldOption
+		err := rows.Scan(
+			&option.ID,
+			&option.FieldID,
+			&option.Name,
+			&option.IsActive,
+			&option.SortOrder,
+			&option.CreatedAt,
 		)
 		if err != nil {
-			return models.Field{}, fmt.Errorf("UpdateField option update: %w", err)
+			return models.Field{}, fmt.Errorf("UpdateField option Scan: %w", err)
 		}
-		returnedField.Options = append(returnedField.Options, returnedOption)
+		returnedField.Options = append(returnedField.Options, option)
 	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return models.Field{}, fmt.Errorf("UpdateField commit: %w", err)
+	if err = rows.Err(); err != nil {
+		return models.Field{}, fmt.Errorf("UpdateField option rows: %w", err)
 	}
-
 	return returnedField, nil
 }
