@@ -77,7 +77,7 @@ func (s *Storage) CreateProduct(
 	return returnedProduct, nil
 }
 
-func (s *Storage) GetProduct(ctx context.Context, id int64) (*models.Product, error) {
+func (s *Storage) GetProduct(ctx context.Context, id int64) (models.Product, error) {
 	var product models.Product
 	row := s.db.QueryRow(
 		ctx,
@@ -98,10 +98,10 @@ func (s *Storage) GetProduct(ctx context.Context, id int64) (*models.Product, er
 	)
 	product.Images = make([]models.ProductImage, 0, 5)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrProductNotFound
+		return models.Product{}, ErrProductNotFound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("GetProduct product query: %w", err)
+		return models.Product{}, fmt.Errorf("GetProduct product query: %w", err)
 	}
 	rows, err := s.db.Query(
 		ctx,
@@ -110,7 +110,7 @@ func (s *Storage) GetProduct(ctx context.Context, id int64) (*models.Product, er
 		product.ID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("GetProduct image query: %w", err)
+		return models.Product{}, fmt.Errorf("GetProduct image query: %w", err)
 	}
 	defer rows.Close()
 
@@ -125,14 +125,14 @@ func (s *Storage) GetProduct(ctx context.Context, id int64) (*models.Product, er
 			&image.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("GetProduct image Scan: %w", err)
+			return models.Product{}, fmt.Errorf("GetProduct image Scan: %w", err)
 		}
 		product.Images = append(product.Images, image)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("GetProduct rows: %w", err)
+		return models.Product{}, fmt.Errorf("GetProduct rows: %w", err)
 	}
-	return &product, nil
+	return product, nil
 }
 
 func (s *Storage) GetProducts(ctx context.Context, limit int, offset int) ([]models.Product, error) {
