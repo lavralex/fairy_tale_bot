@@ -185,3 +185,79 @@ func (s *Storage) GetFields(ctx context.Context) ([]models.Field, error) {
 	}
 	return fields, nil
 }
+
+func (s *Storage) DeleteField(ctx context.Context, id int64) error {
+	ct, err := s.db.Exec(ctx, "DELETE FROM fields WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("DeleteField: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrFieldNotFound
+	}
+	return nil
+}
+
+func (s *Storage) UpdateField(ctx context.Context, field models.Field) (models.Field, error) {
+	if len(field.Options) < 1 {
+		return models.Field{}, ErrIncorrectNumberOfOptions
+	}
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return models.Field{}, fmt.Errorf("UpdateField: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	row := tx.QueryRow(
+		ctx,
+		"UPDATE fields SET name = $1, is_active = $2 WHERE id = $3 "+
+			"RETURNING id, name, is_active, created_at",
+		field.Name, field.IsActive, field.ID,
+	)
+	var returnedField models.Field
+	err = row.Scan(
+		&returnedField.ID,
+		&returnedField.Name,
+		&returnedField.IsActive,
+		&returnedField.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Field{}, ErrFieldNotFound
+	}
+	if err != nil {
+		return models.Field{}, fmt.Errorf("UpdateField field QueryRow: %w", err)
+	}
+	_, err = tx.Exec(
+		ctx,
+		"DELETE FROM field_options WHERE field_id = $1",
+		field.ID,
+	)
+	if err != nil {
+		return models.Field{}, fmt.Errorf("UpdateField options delete: %w", err)
+	}
+	for _, option := range field.Options {
+		row := tx.QueryRow(
+			ctx,
+			"INSERT INTO field_options (field_id, name, sort_order, is_active) "+
+				"VALUES ($1, $2, $3, $4) RETURNING id, field_id, name, sort_order, is_active, created_at;",
+			field.ID, option.Name, option.SortOrder, option.IsActive,
+		)
+		var returnedOption models.FieldOption
+		err = row.Scan(
+			&returnedOption.ID,
+			&returnedOption.FieldID,
+			&returnedOption.Name,
+			&returnedOption.SortOrder,
+			&returnedOption.IsActive,
+			&returnedOption.CreatedAt,
+		)
+		if err != nil {
+			return models.Field{}, fmt.Errorf("UpdateField option update: %w", err)
+		}
+		returnedField.Options = append(returnedField.Options, returnedOption)
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return models.Field{}, fmt.Errorf("UpdateField commit: %w", err)
+	}
+
+	return returnedField, nil
+}
