@@ -124,3 +124,64 @@ func (s *Storage) GetField(ctx context.Context, id int64) (models.Field, error) 
 	}
 	return field, nil
 }
+
+func (s *Storage) GetFields(ctx context.Context) ([]models.Field, error) {
+	rows, err := s.db.Query(
+		ctx,
+		"SELECT id, name, is_active, created_at FROM fields",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetFields query: %w", err)
+	}
+	defer rows.Close()
+	var fields = make([]models.Field, 0)
+	var fieldsIDs = make([]int64, 0)
+	var fieldsMap = make(map[int64]*models.Field)
+	for rows.Next() {
+		var field models.Field
+		err := rows.Scan(
+			&field.ID,
+			&field.Name,
+			&field.IsActive,
+			&field.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("GetFields field Scan: %w", err)
+		}
+		fields = append(fields, field)
+		fieldsIDs = append(fieldsIDs, field.ID)
+		fieldsMap[field.ID] = &fields[len(fields)-1]
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("GetFields fields rows: %w", err)
+	}
+	rows, err = s.db.Query(
+		ctx,
+		"SELECT id, field_id, name, sort_order, created_at, is_active FROM field_options "+
+			"WHERE field_id = ANY($1);",
+		fieldsIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetFields option query: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var option models.FieldOption
+		err := rows.Scan(
+			&option.ID,
+			&option.FieldID,
+			&option.Name,
+			&option.SortOrder,
+			&option.CreatedAt,
+			&option.IsActive,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("GetFields options Scan: %w", err)
+		}
+		fieldsMap[option.FieldID].Options = append(fieldsMap[option.FieldID].Options, option)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("GetFields options rows: %w", err)
+	}
+	return fields, nil
+}
