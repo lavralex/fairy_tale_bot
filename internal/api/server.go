@@ -59,6 +59,11 @@ func (s *Server) setupRoutes() {
 	s.echo.DELETE("/admin/products/:id", s.deleteProductAdmin)
 	s.echo.GET("/admin/products", s.listProducts)
 	s.echo.PUT("/admin/products/:id", s.updateProductAdmin)
+	s.echo.POST("/admin/fields", s.createFieldAdmin)
+	s.echo.GET("/admin/fields/:id", s.getFieldAdmin)
+	s.echo.GET("/admin/fields", s.listFieldsAdmin)
+	s.echo.PUT("/admin/fields/:id", s.updateFieldAdmin)
+	s.echo.DELETE("/admin/fields/:id", s.deleteFieldAdmin)
 }
 
 func hello(c echo.Context) error {
