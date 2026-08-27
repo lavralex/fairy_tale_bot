@@ -52,6 +52,35 @@ type imageAdminResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+func makeProductResponse(product models.Product) productAdminResponse {
+	imagesResponses := make([]imageAdminResponse, 0, len(product.Images))
+	for _, image := range product.Images {
+		imagesResponses = append(
+			imagesResponses,
+			imageAdminResponse{
+				ID:        image.ID,
+				Src:       image.Src,
+				Alt:       image.Alt,
+				SortOrder: image.SortOrder,
+				CreatedAt: image.CreatedAt,
+			},
+		)
+	}
+	return productAdminResponse{
+		ID:              product.ID,
+		Name:            product.Name,
+		Description:     product.Description,
+		Price:           product.Price,
+		Tags:            product.Tags,
+		IsAvailable:     product.IsAvailable,
+		CommentEnabled:  product.CommentEnabled,
+		TemplateID:      product.TemplateID,
+		TemplateEnabled: product.TemplateEnabled,
+		CreatedAt:       product.CreatedAt,
+		Images:          imagesResponses,
+	}
+}
+
 func (s *Server) createProductAdmin(c echo.Context) error {
 	var req createProductAdminRequest
 	if err := c.Bind(&req); err != nil {
@@ -85,33 +114,7 @@ func (s *Server) createProductAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "create product error"})
 	}
-	createdImages := make([]imageAdminResponse, 0, len(item.Images))
-	for _, image := range item.Images {
-		createdImages = append(
-			createdImages,
-			imageAdminResponse{
-				ID:        image.ID,
-				Src:       image.Src,
-				Alt:       image.Alt,
-				SortOrder: image.SortOrder,
-				CreatedAt: image.CreatedAt,
-			},
-		)
-	}
-	createdProduct := productAdminResponse{
-		ID:              item.ID,
-		Name:            item.Name,
-		Description:     item.Description,
-		Price:           item.Price,
-		Tags:            item.Tags,
-		IsAvailable:     item.IsAvailable,
-		CommentEnabled:  item.CommentEnabled,
-		TemplateID:      item.TemplateID,
-		TemplateEnabled: item.TemplateEnabled,
-		CreatedAt:       item.CreatedAt,
-		Images:          createdImages,
-	}
-	return c.JSON(http.StatusCreated, createdProduct)
+	return c.JSON(http.StatusCreated, makeProductResponse(item))
 }
 
 func (s *Server) getProductAdmin(c echo.Context) error {
@@ -130,33 +133,7 @@ func (s *Server) getProductAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "get product error"})
 	}
-	images := make([]imageAdminResponse, 0, len(item.Images))
-	for _, image := range item.Images {
-		images = append(
-			images,
-			imageAdminResponse{
-				ID:        image.ID,
-				Src:       image.Src,
-				Alt:       image.Alt,
-				SortOrder: image.SortOrder,
-				CreatedAt: image.CreatedAt,
-			},
-		)
-	}
-	product := productAdminResponse{
-		ID:              item.ID,
-		Name:            item.Name,
-		Description:     item.Description,
-		Price:           item.Price,
-		TemplateID:      item.TemplateID,
-		Tags:            item.Tags,
-		CreatedAt:       item.CreatedAt,
-		IsAvailable:     item.IsAvailable,
-		CommentEnabled:  item.CommentEnabled,
-		TemplateEnabled: item.TemplateEnabled,
-		Images:          images,
-	}
-	return c.JSON(http.StatusOK, product)
+	return c.JSON(http.StatusOK, makeProductResponse(item))
 }
 
 type listProductsResponse struct {
@@ -299,31 +276,5 @@ func (s *Server) updateProductAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update product error"})
 	}
-	updatedImages := make([]imageAdminResponse, 0, len(item.Images))
-	for _, image := range item.Images {
-		updatedImages = append(
-			updatedImages,
-			imageAdminResponse{
-				ID:        image.ID,
-				Src:       image.Src,
-				Alt:       image.Alt,
-				SortOrder: image.SortOrder,
-				CreatedAt: image.CreatedAt,
-			},
-		)
-	}
-	updatedProduct := productAdminResponse{
-		ID:              item.ID,
-		Name:            item.Name,
-		Description:     item.Description,
-		Price:           item.Price,
-		Tags:            item.Tags,
-		IsAvailable:     item.IsAvailable,
-		CommentEnabled:  item.CommentEnabled,
-		TemplateID:      item.TemplateID,
-		TemplateEnabled: item.TemplateEnabled,
-		CreatedAt:       item.CreatedAt,
-		Images:          updatedImages,
-	}
-	return c.JSON(http.StatusOK, updatedProduct)
+	return c.JSON(http.StatusOK, makeProductResponse(item))
 }

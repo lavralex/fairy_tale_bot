@@ -36,9 +36,9 @@ type optionAdminResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func makeOptionResponses(options []models.FieldOption) []optionAdminResponse {
-	optionsResponses := make([]optionAdminResponse, 0, len(options))
-	for _, option := range options {
+func makeFieldResponse(field models.Field) fieldAdminResponse {
+	optionsResponses := make([]optionAdminResponse, 0, len(field.Options))
+	for _, option := range field.Options {
 		optionsResponses = append(
 			optionsResponses,
 			optionAdminResponse{
@@ -50,7 +50,13 @@ func makeOptionResponses(options []models.FieldOption) []optionAdminResponse {
 			},
 		)
 	}
-	return optionsResponses
+	return fieldAdminResponse{
+		ID:        field.ID,
+		Name:      field.Name,
+		IsActive:  field.IsActive,
+		Options:   optionsResponses,
+		CreatedAt: field.CreatedAt,
+	}
 }
 
 func (s *Server) createFieldAdmin(c echo.Context) error {
@@ -81,14 +87,7 @@ func (s *Server) createFieldAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "create field error"})
 	}
-	createdField := fieldAdminResponse{
-		ID:        item.ID,
-		Name:      item.Name,
-		IsActive:  item.IsActive,
-		Options:   makeOptionResponses(item.Options),
-		CreatedAt: item.CreatedAt,
-	}
-	return c.JSON(http.StatusCreated, createdField)
+	return c.JSON(http.StatusCreated, makeFieldResponse(item))
 }
 
 func (s *Server) getFieldAdmin(c echo.Context) error {
@@ -107,14 +106,7 @@ func (s *Server) getFieldAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "get field error"})
 	}
-	field := fieldAdminResponse{
-		ID:        item.ID,
-		Name:      item.Name,
-		IsActive:  item.IsActive,
-		Options:   makeOptionResponses(item.Options),
-		CreatedAt: item.CreatedAt,
-	}
-	return c.JSON(http.StatusOK, field)
+	return c.JSON(http.StatusOK, makeFieldResponse(item))
 }
 
 func (s *Server) listFieldsAdmin(c echo.Context) error {
@@ -126,13 +118,7 @@ func (s *Server) listFieldsAdmin(c echo.Context) error {
 	for _, item := range items {
 		fields = append(
 			fields,
-			fieldAdminResponse{
-				ID:        item.ID,
-				Name:      item.Name,
-				IsActive:  item.IsActive,
-				Options:   makeOptionResponses(item.Options),
-				CreatedAt: item.CreatedAt,
-			},
+			makeFieldResponse(item),
 		)
 	}
 	return c.JSON(http.StatusOK, fields)
@@ -187,12 +173,5 @@ func (s *Server) updateFieldAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update field error"})
 	}
-	updatedField := fieldAdminResponse{
-		ID:        item.ID,
-		Name:      item.Name,
-		IsActive:  item.IsActive,
-		Options:   makeOptionResponses(item.Options),
-		CreatedAt: item.CreatedAt,
-	}
-	return c.JSON(http.StatusOK, updatedField)
+	return c.JSON(http.StatusOK, makeFieldResponse(item))
 }
