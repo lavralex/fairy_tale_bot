@@ -25,9 +25,8 @@ type createProductAdminRequest struct {
 }
 
 type createImageAdminRequest struct {
-	Src       string `json:"src"`
-	Alt       string `json:"alt"`
-	SortOrder int8   `json:"sort_order"`
+	Src string `json:"src"`
+	Alt string `json:"alt"`
 }
 
 type productAdminResponse struct {
@@ -96,13 +95,13 @@ func (s *Server) createProductAdmin(c echo.Context) error {
 		TemplateID:      req.TemplateID,
 		TemplateEnabled: req.TemplateEnabled,
 	}
-	for _, image := range req.Images {
+	for order, image := range req.Images {
 		product.Images = append(
 			product.Images,
 			models.ProductImage{
 				Src:       image.Src,
 				Alt:       image.Alt,
-				SortOrder: image.SortOrder,
+				SortOrder: int8(order),
 			},
 		)
 	}
@@ -255,13 +254,13 @@ func (s *Server) updateProductAdmin(c echo.Context) error {
 		TemplateID:      req.TemplateID,
 		TemplateEnabled: req.TemplateEnabled,
 	}
-	for _, image := range req.Images {
+	for order, image := range req.Images {
 		product.Images = append(
 			product.Images,
 			models.ProductImage{
 				Src:       image.Src,
 				Alt:       image.Alt,
-				SortOrder: image.SortOrder,
+				SortOrder: int8(order),
 			},
 		)
 	}

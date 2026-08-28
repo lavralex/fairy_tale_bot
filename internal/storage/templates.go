@@ -38,12 +38,12 @@ func (s *Storage) CreateTemplate(
 	if err != nil {
 		return models.Template{}, fmt.Errorf("CreateTemplate: %w", err)
 	}
-	for order, field := range template.Fields {
+	for _, field := range template.Fields {
 		_, err := tx.Exec(
 			ctx,
 			"INSERT INTO template_fields (template_id, field_id, sort_order) "+
 				"VALUES ($1, $2, $3);",
-			returnedTemplate.ID, field.Field.ID, order,
+			returnedTemplate.ID, field.Field.ID, field.SortOrder,
 		)
 		if err != nil {
 			return models.Template{}, fmt.Errorf("CreateTemplate: %w", err)
@@ -272,12 +272,12 @@ func (s *Storage) UpdateTemplate(ctx context.Context, template models.Template) 
 	if err != nil {
 		return models.Template{}, fmt.Errorf("UpdateTemplate fields delete: %w", err)
 	}
-	for order, field := range template.Fields {
+	for _, field := range template.Fields {
 		_, err := tx.Exec(
 			ctx,
 			"INSERT INTO template_fields (template_id, field_id, sort_order) "+
 				"VALUES ($1, $2, $3);",
-			returnedTemplate.ID, field.Field.ID, order,
+			returnedTemplate.ID, field.Field.ID, field.SortOrder,
 		)
 		if err != nil {
 			return models.Template{}, fmt.Errorf("UpdateTemplate: %w", err)

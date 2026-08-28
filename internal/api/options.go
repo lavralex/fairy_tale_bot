@@ -67,6 +67,12 @@ func (s *Server) deleteOptionAdmin(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+type updateOptionAdminRequest struct {
+	Name      string `json:"name"`
+	SortOrder int    `json:"sort_order"`
+	IsActive  bool   `json:"is_active"`
+}
+
 func (s *Server) updateOptionAdmin(c echo.Context) error {
 	optionID, err := strconv.ParseInt(
 		c.Param("id"),
@@ -76,7 +82,7 @@ func (s *Server) updateOptionAdmin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id parameter can't parse to number error"})
 	}
-	var req createFieldOptionAdminRequest
+	var req updateOptionAdminRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid body"})
 	}

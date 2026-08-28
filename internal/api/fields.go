@@ -18,7 +18,6 @@ type createFieldAdminRequest struct {
 }
 type createFieldOptionAdminRequest struct {
 	Name      string `json:"name"`
-	SortOrder int    `json:"sort_order"`
 	IsActive  bool   `json:"is_active"`
 }
 type fieldAdminResponse struct {
@@ -68,12 +67,12 @@ func (s *Server) createFieldAdmin(c echo.Context) error {
 		Name:     req.Name,
 		IsActive: req.IsActive,
 	}
-	for _, option := range req.Options {
+	for order, option := range req.Options {
 		field.Options = append(
 			field.Options,
 			models.FieldOption{
 				Name:      option.Name,
-				SortOrder: option.SortOrder,
+				SortOrder: order,
 				IsActive:  option.IsActive,
 			},
 		)
