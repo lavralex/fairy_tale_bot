@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lavralex/fairy_tale_bot/internal/models"
 )
 
@@ -25,6 +26,11 @@ func (s *Storage) CreateOption(ctx context.Context, option models.FieldOption) (
 		&returnedOption.CreatedAt,
 		&returnedOption.IsActive,
 	)
+	var pgErr *pgconn.PgError
+	// ошибка нарушения ограничения внешнего ключа, если поля к которому привязывается опция не существует
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		return models.FieldOption{}, ErrFieldNotFound
+	}
 	if err != nil {
 		return models.FieldOption{}, fmt.Errorf("CreateOption: %w", err)
 	}

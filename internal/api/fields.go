@@ -12,11 +12,11 @@ import (
 )
 
 type createFieldAdminRequest struct {
-	Name     string                     `json:"name"`
-	IsActive bool                       `json:"is_active"`
-	Options  []createOptionAdminRequest `json:"options"`
+	Name     string                          `json:"name"`
+	IsActive bool                            `json:"is_active"`
+	Options  []createFieldOptionAdminRequest `json:"options"`
 }
-type createOptionAdminRequest struct {
+type createFieldOptionAdminRequest struct {
 	Name      string `json:"name"`
 	SortOrder int    `json:"sort_order"`
 	IsActive  bool   `json:"is_active"`
