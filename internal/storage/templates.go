@@ -139,7 +139,6 @@ func (s *Storage) CreateTemplate(
 }
 
 var ErrTemplateNotFound = errors.New("template not found")
-var ErrTemplateHasNoFields = errors.New("template has no fields")
 
 func (s *Storage) GetTemplate(ctx context.Context, id int64) (models.Template, error) {
 	row := s.db.QueryRow(
@@ -165,10 +164,6 @@ func (s *Storage) GetTemplate(ctx context.Context, id int64) (models.Template, e
 			"FROM template_fields AS tf "+
 			"JOIN fields AS f ON f.id = tf.field_id "+
 			"WHERE tf.template_id = $1 "+
-			"AND f.is_active = true "+
-			"AND EXISTS ("+
-			"    SELECT 1 FROM field_options AS fo "+
-			"    WHERE fo.field_id = f.id AND fo.is_active = true) "+
 			"ORDER BY tf.sort_order",
 		template.ID,
 	)
@@ -191,16 +186,14 @@ func (s *Storage) GetTemplate(ctx context.Context, id int64) (models.Template, e
 		if err != nil {
 			return models.Template{}, fmt.Errorf("GetTemplate field scan: %w", err)
 		}
-		if field.IsActive {
-			template.Fields = append(
-				template.Fields,
-				models.TemplateField{
-					Field:     field,
-					SortOrder: order,
-				},
-			)
-			fieldsIDs = append(fieldsIDs, field.ID)
-		}
+		template.Fields = append(
+			template.Fields,
+			models.TemplateField{
+				Field:     field,
+				SortOrder: order,
+			},
+		)
+		fieldsIDs = append(fieldsIDs, field.ID)
 	}
 	for i := range template.Fields {
 		fieldsMap[template.Fields[i].Field.ID] = &template.Fields[i].Field
@@ -208,14 +201,10 @@ func (s *Storage) GetTemplate(ctx context.Context, id int64) (models.Template, e
 	if err = rows.Err(); err != nil {
 		return models.Template{}, fmt.Errorf("GetTemplate fields rows: %w", err)
 	}
-	if len(template.Fields) < 1 {
-		return models.Template{}, ErrTemplateHasNoFields
-	}
 	rows, err = s.db.Query(
 		ctx,
 		"SELECT id, field_id, name, is_active, sort_order, created_at FROM field_options "+
-			"WHERE field_id = ANY($1) "+
-			"AND is_active = true",
+			"WHERE field_id = ANY($1)",
 		fieldsIDs,
 	)
 	if err != nil {
