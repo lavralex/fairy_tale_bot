@@ -9,6 +9,83 @@ import (
 	"github.com/lavralex/fairy_tale_bot/internal/models"
 )
 
+func loadTemplateFields(ctx context.Context, tx pgx.Tx, id int64) ([]models.TemplateField, error) {
+	rows, err := tx.Query(
+		ctx,
+		"SELECT f.id, f.name, f.is_active, f.created_at, tf.sort_order "+
+			"FROM template_fields AS tf "+
+			"JOIN fields AS f ON f.id = tf.field_id "+
+			"WHERE tf.template_id = $1 "+
+			"ORDER BY tf.sort_order",
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fields query: %w", err)
+	}
+	defer rows.Close()
+	fieldsIDs := make([]int64, 0)
+	fieldsMap := make(map[int64]*models.Field)
+	var templateFields []models.TemplateField
+	for rows.Next() {
+		var field models.Field
+		var order int
+		err = rows.Scan(
+			&field.ID,
+			&field.Name,
+			&field.IsActive,
+			&field.CreatedAt,
+			&order,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("field scan: %w", err)
+		}
+		fieldsIDs = append(fieldsIDs, field.ID)
+		templateFields = append(
+			templateFields,
+			models.TemplateField{
+				Field:     field,
+				SortOrder: order,
+			},
+		)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("fields rows: %w", err)
+	}
+	for i := range templateFields {
+		fieldsMap[templateFields[i].Field.ID] = &templateFields[i].Field
+	}
+	rows, err = tx.Query(
+		ctx,
+		"SELECT id, field_id, name, is_active, sort_order, created_at FROM field_options "+
+			"WHERE field_id = ANY($1) "+
+			"ORDER BY sort_order",
+		fieldsIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("option query: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var option models.FieldOption
+		err := rows.Scan(
+			&option.ID,
+			&option.Name,
+			&option.FieldID,
+			&option.IsActive,
+			&option.SortOrder,
+			&option.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("option Scan: %w", err)
+		}
+		fieldsMap[option.FieldID].Options = append(fieldsMap[option.FieldID].Options, option)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("option rows: %w", err)
+	}
+	return templateFields, nil
+}
+
 var ErrIncorrectNumberOfFields = errors.New("the incorrect number of fields required is more then 0")
 
 func (s *Storage) CreateTemplate(
@@ -20,7 +97,7 @@ func (s *Storage) CreateTemplate(
 	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return models.Template{}, fmt.Errorf("CreateTemplate: %w", err)
+		return models.Template{}, fmt.Errorf("CreateTemplate begin: %w", err)
 	}
 	defer tx.Rollback(ctx)
 	row := tx.QueryRow(
@@ -36,7 +113,7 @@ func (s *Storage) CreateTemplate(
 		&returnedTemplate.CreatedAt,
 	)
 	if err != nil {
-		return models.Template{}, fmt.Errorf("CreateTemplate: %w", err)
+		return models.Template{}, fmt.Errorf("CreateTemplate template Scan: %w", err)
 	}
 	for _, field := range template.Fields {
 		_, err := tx.Exec(
@@ -46,45 +123,13 @@ func (s *Storage) CreateTemplate(
 			returnedTemplate.ID, field.Field.ID, field.SortOrder,
 		)
 		if err != nil {
-			return models.Template{}, fmt.Errorf("CreateTemplate: %w", err)
+			return models.Template{}, fmt.Errorf("CreateTemplate template fields exec: %w", err)
 		}
 	}
-	rows, err := tx.Query(
-		ctx,
-		"SELECT f.id, f.name, f.is_active, f.created_at, tf.sort_order "+
-			"FROM template_fields AS tf "+
-			"JOIN fields AS f ON f.id = tf.field_id "+
-			"WHERE tf.template_id = $1 "+
-			"ORDER BY tf.sort_order",
-		returnedTemplate.ID,
-	)
+
+	returnedTemplate.Fields, err = loadTemplateFields(ctx, tx, returnedTemplate.ID)
 	if err != nil {
-		return models.Template{}, fmt.Errorf("CreateTemplate fields query: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var field models.Field
-		var order int
-		err = rows.Scan(
-			&field.ID,
-			&field.Name,
-			&field.IsActive,
-			&field.CreatedAt,
-			&order,
-		)
-		if err != nil {
-			return models.Template{}, fmt.Errorf("CreateTemplate field scan: %w", err)
-		}
-		returnedTemplate.Fields = append(
-			returnedTemplate.Fields,
-			models.TemplateField{
-				Field:     field,
-				SortOrder: order,
-			},
-		)
-	}
-	if err = rows.Err(); err != nil {
-		return models.Template{}, fmt.Errorf("CreateTemplate fields rows: %w", err)
+		return models.Template{}, fmt.Errorf("CreateTemplate load template fields: %w", err)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
@@ -280,45 +325,12 @@ func (s *Storage) UpdateTemplate(ctx context.Context, template models.Template) 
 			returnedTemplate.ID, field.Field.ID, field.SortOrder,
 		)
 		if err != nil {
-			return models.Template{}, fmt.Errorf("UpdateTemplate: %w", err)
+			return models.Template{}, fmt.Errorf("UpdateTemplate template fields exec: %w", err)
 		}
 	}
-	rows, err := tx.Query(
-		ctx,
-		"SELECT f.id, f.name, f.is_active, f.created_at, tf.sort_order "+
-			"FROM template_fields AS tf "+
-			"JOIN fields AS f ON f.id = tf.field_id "+
-			"WHERE tf.template_id = $1 "+
-			"ORDER BY tf.sort_order",
-		returnedTemplate.ID,
-	)
+	returnedTemplate.Fields, err = loadTemplateFields(ctx, tx, returnedTemplate.ID)
 	if err != nil {
-		return models.Template{}, fmt.Errorf("UpdateTemplate fields query: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var field models.Field
-		var order int
-		err = rows.Scan(
-			&field.ID,
-			&field.Name,
-			&field.IsActive,
-			&field.CreatedAt,
-			&order,
-		)
-		if err != nil {
-			return models.Template{}, fmt.Errorf("UpdateTemplate field scan: %w", err)
-		}
-		returnedTemplate.Fields = append(
-			returnedTemplate.Fields,
-			models.TemplateField{
-				Field:     field,
-				SortOrder: order,
-			},
-		)
-	}
-	if err = rows.Err(); err != nil {
-		return models.Template{}, fmt.Errorf("UpdateTemplate fields rows: %w", err)
+		return models.Template{}, fmt.Errorf("UpdateTemplate load template fields: %w", err)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
