@@ -151,10 +151,10 @@ type listProductImageResponse struct {
 	SortOrder int8   `json:"sort_order"`
 }
 
-const defaultLimit = 10
+const productsLimit = 10
 const maxLimit = 50
 
-func parseLimit(c echo.Context) int {
+func parseLimit(c echo.Context, defaultLimit int) int {
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
 	if err != nil || limit <= 0 {
 		return defaultLimit
@@ -176,7 +176,7 @@ func parseOffset(c echo.Context, limit int) int {
 }
 
 func (s *Server) listProducts(c echo.Context) error {
-	limit := parseLimit(c)
+	limit := parseLimit(c, productsLimit)
 	offset := parseOffset(c, limit)
 	items, err := s.store.GetProducts(c.Request().Context(), limit, offset)
 	if err != nil {
