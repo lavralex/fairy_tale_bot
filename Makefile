@@ -1,9 +1,12 @@
 include .env
 
-.PHONY: build run db-up db-down migrate-up migrate-down
+.PHONY: build vet run db-up db-down migrate-up migrate-down
 
 build:
-	go build cmd/bot/main.go 
+	go build ./... 
+
+vet:
+	go vet ./...
 
 run:
 	go run ./cmd/bot/
