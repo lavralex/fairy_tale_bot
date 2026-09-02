@@ -1,12 +1,16 @@
 include .env
 
-.PHONY: build vet run db-up db-down migrate-up migrate-down
+.PHONY: build vet lint run db-up db-down migrate-up migrate-down
 
 build:
 	go build ./... 
 
 vet:
 	go vet ./...
+
+# требует golangci-lint: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+lint:
+	golangci-lint run ./...
 
 run:
 	go run ./cmd/bot/
