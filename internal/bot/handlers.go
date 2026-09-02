@@ -23,25 +23,37 @@ func (b *Bot) handleStart(ctx context.Context, message *tgbotapi.Message) {
 	response := tgbotapi.NewMessage(message.Chat.ID, "")
 	if err != nil {
 		response.Text = "Произошла ошибка регистрации"
-		b.api.Send(response)
+		_, err = b.api.Send(response)
+		if err != nil {
+			log.Printf("CreateUser err response: %v", err)
+		}
 		log.Printf("CreateUser error: %v", err)
 		return
 	}
 	dbUser, err := b.store.GetUserByTelegramID(ctx, telegramUser.ID)
 	if errors.Is(err, storage.ErrUserNotFound) {
 		response.Text = "Пользователь не найден"
-		b.api.Send(response)
+		_, resErr := b.api.Send(response)
+		if err != nil {
+			log.Printf("GetUser err response: %v", resErr)
+		}
 		log.Printf("GetUserByTelegramID error: %v", err)
 		return
 	}
 	if err != nil {
 		response.Text = "Произошла ошибка поиска пользователя"
-		b.api.Send(response)
+		_, resErr := b.api.Send(response)
+		if resErr != nil {
+			log.Printf("GetUserByTelegramID err resp: %v", err)
+		}
 		log.Printf("GetUserByTelegramID error: %v", err)
 		return
 	}
 	response.Text = fmt.Sprintf("Здравствуйте, %s", *dbUser.Username)
 	webApp := tgbotapi.WebAppInfo{URL: "https://example.com"}
 	response.ReplyMarkup = getStartKeyboard("Вход в магазин", webApp)
-	b.api.Send(response)
+	_, resErr := b.api.Send(response)
+	if resErr != nil {
+		log.Printf("hallo resp: %v", resErr)
+	}
 }

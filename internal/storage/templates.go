@@ -99,7 +99,7 @@ func (s *Storage) CreateTemplate(
 	if err != nil {
 		return models.Template{}, fmt.Errorf("CreateTemplate begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	row := tx.QueryRow(
 		ctx,
 		"INSERT INTO templates (name) "+
@@ -280,7 +280,7 @@ func (s *Storage) UpdateTemplate(ctx context.Context, template models.Template) 
 	if err != nil {
 		return models.Template{}, fmt.Errorf("UpdateTemplate begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	row := tx.QueryRow(
 		ctx,
 		"UPDATE templates SET name = $1 WHERE id = $2 "+

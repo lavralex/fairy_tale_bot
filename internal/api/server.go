@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -40,7 +41,10 @@ func (s *Server) Run(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		e.Shutdown(shutdownCtx)
+		err := e.Shutdown(shutdownCtx)
+		if err != nil {
+			log.Printf("server shutdown error: %v", err)
+		}
 		cancel()
 		return ctx.Err()
 	case err := <-errCh:

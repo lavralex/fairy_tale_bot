@@ -24,7 +24,7 @@ func (s *Storage) CreateProduct(
 	if err != nil {
 		return models.Product{}, fmt.Errorf("CreateProduct: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	row := tx.QueryRow(
 		ctx,
 		"INSERT INTO products (name, description, price, template_id, tags, is_available, comment_enabled, template_enabled) "+
@@ -224,7 +224,7 @@ func (s *Storage) UpdateProduct(ctx context.Context, product models.Product) (mo
 	if err != nil {
 		return models.Product{}, fmt.Errorf("UpdateProduct: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	row := tx.QueryRow(
 		ctx,
 		"UPDATE products SET name = $1, description = $2, price = $3, template_id = $4, tags = $5, is_available = $6, comment_enabled = $7, template_enabled = $8  WHERE id = $9 "+

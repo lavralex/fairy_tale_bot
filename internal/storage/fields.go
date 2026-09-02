@@ -22,7 +22,7 @@ func (s *Storage) CreateField(
 	if err != nil {
 		return models.Field{}, fmt.Errorf("CreateField: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	row := tx.QueryRow(
 		ctx,

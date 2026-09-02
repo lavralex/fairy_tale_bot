@@ -52,7 +52,10 @@ func (b *Bot) Run(ctx context.Context) error {
 						b.handleStart(ctx, message)
 					default:
 						msg.Text = "Команда не найдена"
-						b.api.Send(msg)
+						_, err := b.api.Send(msg)
+						if err != nil {
+							log.Printf("default response: %v", err)
+						}
 					}
 				}
 			}
