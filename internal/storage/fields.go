@@ -150,10 +150,12 @@ func (s *Storage) GetFields(ctx context.Context) ([]models.Field, error) {
 		}
 		fields = append(fields, field)
 		fieldsIDs = append(fieldsIDs, field.ID)
-		fieldsMap[field.ID] = &fields[len(fields)-1]
 	}
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("GetFields fields rows: %w", err)
+	}
+	for i := range fields {
+		fieldsMap[fields[i].ID] = &fields[i]
 	}
 	rows, err = s.db.Query(
 		ctx,
