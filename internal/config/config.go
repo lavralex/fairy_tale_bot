@@ -16,7 +16,7 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	godotenv.Load() // на проде файла нет - игнорируем ошибку намеренно
+	_ = godotenv.Load() // на проде файла нет - игнорируем ошибку намеренно
 	isDebugText := os.Getenv("DEBUG")
 	isDebug, err := strconv.ParseBool(isDebugText)
 	if isDebugText == "" {
