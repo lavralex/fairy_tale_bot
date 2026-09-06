@@ -11,16 +11,15 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/lavralex/fairy_tale_bot/internal/config"
-	"github.com/lavralex/fairy_tale_bot/internal/storage"
 )
 
 type Server struct {
 	echo  *echo.Echo
 	conf  *config.Config
-	store *storage.Storage
+	store Storage
 }
 
-func New(conf *config.Config, store *storage.Storage) *Server {
+func New(conf *config.Config, store Storage) *Server {
 	return &Server{
 		echo:  echo.New(),
 		conf:  conf,
