@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +12,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/lavralex/fairy_tale_bot/internal/models"
 	"github.com/lavralex/fairy_tale_bot/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testDate = time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
@@ -120,21 +121,15 @@ func TestCreateFieldAdmin(t *testing.T) {
 				e := echo.New()
 				c := e.NewContext(req, rec)
 				gotErr := tt.server.createFieldAdmin(c)
-				if gotErr != nil {
-					t.Fatalf("createFieldAdmin() unexpected error = %v", gotErr)
-				}
+				require.NoError(t, gotErr)
 				if tt.wantBody != nil {
 					var got fieldAdminResponse
 					if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 						t.Fatalf("unmarshal response: %v", err)
 					}
-					if !reflect.DeepEqual(got, *tt.wantBody) {
-						t.Errorf("body = %+v, want %+v", got, *tt.wantBody)
-					}
+					assert.Equal(t, *tt.wantBody, got)
 				}
-				if rec.Code != tt.wantStatus {
-					t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
-				}
+				assert.Equal(t, tt.wantStatus, rec.Code)
 			},
 		)
 	}
@@ -193,21 +188,15 @@ func TestGetFieldAdmin(t *testing.T) {
 				c.SetParamNames("id")
 				c.SetParamValues(tt.id)
 				gotErr := tt.server.getFieldAdmin(c)
-				if gotErr != nil {
-					t.Fatalf("getFieldAdmin() unexpected error = %v", gotErr)
-				}
+				require.NoError(t, gotErr)
 				if tt.wantBody != nil {
 					var got fieldAdminResponse
 					if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 						t.Fatalf("unmarshal response: %v", err)
 					}
-					if !reflect.DeepEqual(got, *tt.wantBody) {
-						t.Errorf("body = %+v, want %+v", got, *tt.wantBody)
-					}
+					assert.Equal(t, *tt.wantBody, got)
 				}
-				if rec.Code != tt.wantStatus {
-					t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
-				}
+				assert.Equal(t, tt.wantStatus, rec.Code)
 			},
 		)
 	}
@@ -268,12 +257,8 @@ func TestDeleteFieldAdmin(t *testing.T) {
 				c.SetParamNames("id")
 				c.SetParamValues(tt.id)
 				gotErr := tt.server.deleteFieldAdmin(c)
-				if gotErr != nil {
-					t.Fatalf("deleteFieldAdmin() unexpected error = %v", gotErr)
-				}
-				if rec.Code != tt.wantStatus {
-					t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
-				}
+				require.NoError(t, gotErr)
+				assert.Equal(t, tt.wantStatus, rec.Code)
 			},
 		)
 	}

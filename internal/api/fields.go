@@ -17,8 +17,8 @@ type createFieldAdminRequest struct {
 	Options  []createFieldOptionAdminRequest `json:"options"`
 }
 type createFieldOptionAdminRequest struct {
-	Name      string `json:"name"`
-	IsActive  bool   `json:"is_active"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"is_active"`
 }
 type fieldAdminResponse struct {
 	ID        int64                 `json:"id"`
