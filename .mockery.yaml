@@ -1,0 +1,9 @@
+with-expecter: true
+packages:
+  github.com/lavralex/fairy_tale_bot/internal/api:
+    interfaces:
+      Storage:
+        config:
+          dir: internal/api/mocks
+          outpkg: mocks
+          filename: storage_mock.go
