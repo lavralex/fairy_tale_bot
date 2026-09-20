@@ -1,6 +1,6 @@
 include .env
 
-.PHONY: build vet lint run db-up db-down migrate-up migrate-down f test
+.PHONY: build vet lint run db-up db-down migrate-up migrate-down f test check
 
 build:
 	go build ./... 
@@ -32,3 +32,5 @@ f:
 
 test:
 	go test ./...
+
+check: f vet lint test
