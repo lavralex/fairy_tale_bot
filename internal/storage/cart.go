@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lavralex/fairy_tale_bot/internal/models"
 )
+
+var ErrOneOptionPerField = errors.New("can be only one option per field in cart item")
 
 func (s *Storage) CreateCartItem(ctx context.Context, item models.CartItem) (models.CartItem, error) {
 	tx, err := s.db.Begin(ctx)
@@ -29,6 +32,14 @@ func (s *Storage) CreateCartItem(ctx context.Context, item models.CartItem) (mod
 		&returnedCartItem.Comment,
 		&returnedCartItem.CreatedAt,
 	)
+	var pgErr *pgconn.PgError
+	// ошибка нарушения ограничения внешнего ключа, если поля к которому привязывается опция не существует foreign_key_violation
+	if errors.As(err, &pgErr) && pgErr.ConstraintName == "cart_items_user_id_fkey" {
+		return models.CartItem{}, ErrUserNotFound
+	}
+	if errors.As(err, &pgErr) && pgErr.ConstraintName == "cart_items_product_id_fkey" {
+		return models.CartItem{}, ErrProductNotFound
+	}
 	if err != nil {
 		return models.CartItem{}, fmt.Errorf("CreateCartItem cart item scan: %w", err)
 	}
@@ -48,6 +59,17 @@ func (s *Storage) CreateCartItem(ctx context.Context, item models.CartItem) (mod
 			&returnedCartItemOption.OptionID,
 			&returnedCartItemOption.CreatedAt,
 		)
+		// ошибка нарушения ограничения внешнего ключа, если поля к которому привязывается опция не существует foreign_key_violation
+		if errors.As(err, &pgErr) && pgErr.ConstraintName == "cart_item_options_field_id_fkey" {
+			return models.CartItem{}, ErrFieldNotFound
+		}
+		if errors.As(err, &pgErr) && pgErr.ConstraintName == "cart_item_options_option_id_fkey" {
+			return models.CartItem{}, ErrOptionNotFound
+		}
+		// ошибка нарушения ограничения уникального сочетания unique_violation
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return models.CartItem{}, ErrOneOptionPerField
+		}
 		if err != nil {
 			return models.CartItem{}, fmt.Errorf("CreateCartItem cart item option scan: %w", err)
 		}
